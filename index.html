@@ -31,9 +31,12 @@ p{margin:0}
 .steps{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
 .caution{font-size:12.5px;color:var(--ink-2);line-height:1.6}
 .catch{font-size:17px;font-weight:800;line-height:1.5}
-.sound{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg)}
+.sound{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;background:var(--bg)}
 .sound p{font-size:13px;font-weight:700;line-height:1.5}
-.sound .mini{flex:none}
+.sound .mini{height:38px;font-size:13.5px}
+.caution.strong{font-size:13px;color:var(--ink)}
+.credit{font-size:12.5px;color:var(--ink-2);text-align:center}
+.credit a{color:var(--accent);font-weight:700}
 .btn{display:flex;align-items:center;justify-content:center;height:52px;border-radius:12px;border:1.5px solid var(--ink);background:#FFFFFF;color:var(--ink);font:inherit;font-size:16px;font-weight:700;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
@@ -58,7 +61,8 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 .big{font-size:22px;font-weight:800;line-height:1.5}
 .time{font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .scare{position:fixed;inset:0;z-index:100;background:#000000;overflow:hidden}
-.scare img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;scale:1.12;animation:shake .09s linear infinite, zoom 2.6s ease-out forwards}
+/* ゆれは最初の2回（約0.2秒）だけ。明暗の入れかわりを長く続けないため。あとはゆっくり拡大するだけ */
+.scare img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;scale:1.12;animation:shake .09s linear 2, zoom 2.6s ease-out forwards}
 @keyframes shake{0%{translate:-1.2% .8%}25%{translate:1% -1%}50%{translate:-.8% -1.2%}75%{translate:1.2% 1%}100%{translate:-1.2% .8%}}
 @keyframes zoom{from{scale:1.12}to{scale:1.36}}
 @media (prefers-reduced-motion: reduce){.scare img{animation:none}}
@@ -80,12 +84,13 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
         <li>かべに近づくと、音で知らせます。音を出したほうが有利です。</li>
       </ol>
       <div class="sound">
-        <p>マナーモードを解除して、音が聞こえる音量にしてください。</p>
-        <button type="button" class="mini" id="b-sound">音を確かめる</button>
+        <p>マナーモードを解除して、ボタンの音が大きすぎない音量にしてください。</p>
+        <button type="button" class="mini" id="b-sound">いちばん大きい音を確かめる</button>
       </div>
-      <p class="caution">音が出ます。心臓の弱い方、体調のすぐれない方はご遠慮ください。</p>
+      <p class="caution strong"><strong>ご注意</strong>　急に大きな音が出ることがあります。心臓の弱い方、妊娠中の方、体調のすぐれない方、小さなお子さまはご遠慮ください。イヤホンの方は音量をひかえめに。歩きながら・運転中は遊ばないでください。</p>
     </div>
     <button type="button" class="btn primary" id="b-start" style="margin-top:16px;width:100%">スタート</button>
+    <p class="credit" style="margin-top:14px">作った人：<a href="https://x.com/baris250209" target="_blank" rel="noopener">バルス大佐（@baris250209）</a></p>
   </section>
 
   <section id="s-game" hidden>
@@ -110,12 +115,13 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
       <p class="time" id="end-col"></p>
     </div>
     <div class="card" style="margin-top:16px">
-      <p>おどろいた人は、友だちにも試してもらいましょう。ネタバレは禁止です。</p>
+      <p>おどろいた人は、友だちにも試してもらいましょう。ネタバレは禁止です。送る相手の体調と、いる場所（電車・職場など）には気をつけてください。</p>
       <a class="btn primary" id="b-share" target="_blank" rel="noopener">Xでポストする</a>
       <button type="button" class="btn" id="b-copy">リンクをコピー</button>
       <button type="button" class="btn" id="b-retry">もう一回やる</button>
     </div>
     <p class="caution" style="margin-top:12px">このページは、音と画像でおどろかせるジョークです。データの収集や送信は行いません。</p>
+    <p class="credit" style="margin-top:8px">作った人：<a href="https://x.com/baris250209" target="_blank" rel="noopener">バルス大佐（@baris250209）</a></p>
   </section>
 
 </div>
@@ -240,7 +246,7 @@ function show(id) { for (const s of ['s-title', 's-game', 's-end']) $('#' + s).h
 function setHint() {
   const h = $('#hint');
   if (S.state === 'ready') h.textContent = S.touchUser ? '画面のどこでもいいので、指でなぞってください。点が動きます。' : '青い点をクリックすると、マウスについてきます。スマホは指でなぞってください。';
-  else if (S.state === 'play') h.textContent = S.level !== LAST ? 'かべにふれないように、黄色いゴールまで。急いで。' : S.reachedNarrow ? 'ここからが本番です。画面に顔を近づけて、ゆっくり進んでください。' : '最終レベル。この先、道が細くなります。';
+  else if (S.state === 'play') h.textContent = S.level !== LAST ? 'かべにふれないように、黄色いゴールまで。急いで。' : S.reachedNarrow ? 'ここからが本番です。ゆっくり進んでください。' : '最終レベル。この先、道が細くなります。';
   else h.textContent = '';
 }
 function message(text, bad, ms, then) {
@@ -288,9 +294,9 @@ function beep(freq, dur, type, vol, delay) {
 }
 /* 音楽：ファイルを使わず、その場で音を作って鳴らす。calm＝おだやか、tense＝最終レベル用の不安な音 */
 const BGM = {
-  calm: { step: 0.42, vol: 0.9, pad: [130.81, 196.0], padVol: 0.05, noteVol: 0.16, len: 1.1,
+  calm: { step: 0.42, vol: 0.9, pad: [130.81, 196.0], padVol: 0.08, noteVol: 0.26, len: 1.1,
           notes: [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 587.33, 783.99, 440.0, 523.25, 659.25, 880.0, 659.25, 523.25, 493.88, 659.25] },
-  tense: { step: 0.7, vol: 0.8, pad: [55.0, 58.27], padVol: 0.12, noteVol: 0.13, len: 1.8,
+  tense: { step: 0.7, vol: 0.8, pad: [55.0, 58.27], padVol: 0.2, noteVol: 0.26, len: 1.8,
            notes: [220.0, 261.63, 311.13, 261.63, 207.65, 261.63, 311.13, 233.08] }
 };
 let bgm = null, musicOn = true;
@@ -340,9 +346,24 @@ function setMusic(on) {
   $('#b-bgm').setAttribute('aria-pressed', String(on));
   if (bgm && ac) { bgm.g.gain.cancelScheduledValues(ac.currentTime); bgm.g.gain.linearRampToValueAtTime(on ? BGM[bgm.mode].vol : 0.0001, ac.currentTime + 0.3); }
 }
-const sndStart = () => { beep(660, 0.12, 'sine', 0.1); };
-const sndClear = () => { beep(660, 0.12, 'sine', 0.12); beep(880, 0.12, 'sine', 0.12, 0.12); beep(1320, 0.22, 'sine', 0.12, 0.24); };
-const sndFail = () => { beep(140, 0.28, 'square', 0.09); };
+const sndStart = () => { beep(660, 0.12, 'sine', 0.15); };
+const sndClear = () => { beep(660, 0.12, 'sine', 0.18); beep(880, 0.12, 'sine', 0.18, 0.12); beep(1320, 0.22, 'sine', 0.18, 0.24); };
+const sndFail = () => { beep(140, 0.28, 'square', 0.14); };
+// 音の確認：ゲームの中でいちばん大きい音（叫び声）と同じくらいの大きさで鳴らす。この音で音量を合わせてもらう
+function sndCheck() {
+  if (!ac) return;
+  const t = ac.currentTime, g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.6, t + 0.3); // 急には鳴らさない
+  g.gain.setValueAtTime(0.6, t + 1.0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+  g.connect(out);
+  for (const f of [660, 880, 1320]) {
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'triangle'; o.frequency.value = f; og.gain.value = 0.35;
+    o.connect(og); og.connect(g); o.start(t); o.stop(t + 1.35);
+  }
+}
 // かべに近づくと鳴る音：1＝近い、2＝すぐそば（近いほど高く、細かく鳴る）
 let lastTick = 0;
 function nearWall(lv, x, y) {
@@ -355,14 +376,14 @@ function tickNear(lv, x, y) {
   const now = performance.now();
   if (now - lastTick < (n === 2 ? 90 : 220)) return;
   lastTick = now;
-  beep(n === 2 ? 1500 : 950, 0.045, 'square', n === 2 ? 0.07 : 0.05);
+  beep(n === 2 ? 1500 : 950, 0.045, 'square', n === 2 ? 0.11 : 0.08);
 }
 function scream() {
   if (!ac) return;
   const t = ac.currentTime, D = 2.4;
   const g = ac.createGain();
   g.gain.setValueAtTime(0.0001, t);
-  // 叫び声は、音楽よりはっきり大きいが、耳を痛めるほどの差にはしない（イヤホンで遊ぶ人のため）
+  // 叫び声の大きさは、最初の画面の「いちばん大きい音を確かめる」（sndCheck）と同じくらいにそろえてある
   g.gain.exponentialRampToValueAtTime(0.6, t + 0.03);
   g.gain.setValueAtTime(0.6, t + D - 0.7);
   g.gain.exponentialRampToValueAtTime(0.0001, t + D);
@@ -485,7 +506,7 @@ function scare(by) {
       $('#end-tag').hidden = !$('#end-tag').textContent;
       $('#end-desc').textContent = TITLES[id][1].replace('{n}', plays);
       const best = store.get();
-      $('#end-time').textContent = (best && best < rec ? '自己ベスト：' + fmtTime(best) : '自己ベストです') + (S.recPen ? '（ミス ' + S.recPen + '回・＋' + S.recPen * 3 + '秒を含む）' : '（ミスなし）');
+      $('#end-time').textContent = (best && best < Math.round(rec) ? '自己ベスト：' + fmtTime(best) : '自己ベストです') + (S.recPen ? '（ミス ' + S.recPen + '回・＋' + S.recPen * 3 + '秒を含む）' : '（ミスなし）');
       $('#end-col').textContent = '集めた称号：' + got.count + ' / ' + TITLE_COUNT + ' 種類';
     } else {
       $('#end-rec').textContent = '—'; $('#end-title').textContent = ''; $('#end-tag').hidden = true; $('#end-desc').textContent = ''; $('#end-time').textContent = ''; $('#end-col').textContent = '';
@@ -605,7 +626,7 @@ $('#b-copy').addEventListener('click', async () => {
   setTimeout(() => { b.textContent = 'リンクをコピー'; }, 1800);
 });
 $('#b-bgm').addEventListener('click', () => setMusic(!musicOn));
-$('#b-sound').addEventListener('click', () => { initAudio(); sndClear(); $('#b-sound').textContent = 'もう一度鳴らす'; });
+$('#b-sound').addEventListener('click', () => { initAudio(); sndCheck(); $('#b-sound').textContent = 'もう一度、いちばん大きい音を鳴らす'; });
 document.addEventListener('visibilitychange', () => {
   if (!ac) return;
   if (document.hidden) ac.suspend(); else ac.resume();
