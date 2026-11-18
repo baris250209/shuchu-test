@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>集中力テスト</title>
+<meta name="description" content="青い点を、かべにふれずにゴールまで運ぶタイムアタック。全3レベル。あなたは何秒？">
+<meta property="og:type" content="website">
+<meta property="og:title" content="集中力テスト">
+<meta property="og:description" content="青い点を、かべにふれずにゴールまで運ぶタイムアタック。全3レベル。あなたは何秒？">
+<meta property="og:url" content="https://baris250209.github.io/shuchu-test/">
+<meta property="og:image" content="https://baris250209.github.io/shuchu-test/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#F4F5FB">
+<meta name="format-detection" content="telephone=no">
+<style>
+:root{
+  --bg:#F4F5FB; --ink:#15162B; --ink-2:#55587A; --line:#D9DCEB;
+  --accent:#2F3BDB; --accent-ink:#FFFFFF; --wall:#15162B; --path:#E3E6FD; --goal:#FFD23F; --bad:#C0352B;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.wrap{max-width:440px;min-height:100%;margin:0 auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-size:26px;line-height:1.3;margin:24px 0 0;font-weight:800;letter-spacing:.02em}
+p{margin:0}
+.lead{color:var(--ink-2)}
+.card{background:#FFFFFF;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.steps{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
+.caution{font-size:12.5px;color:var(--ink-2);line-height:1.6}
+.catch{font-size:17px;font-weight:800;line-height:1.5}
+.sound{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg)}
+.sound p{font-size:13px;font-weight:700;line-height:1.5}
+.sound .mini{flex:none}
+.btn{display:flex;align-items:center;justify-content:center;height:52px;border-radius:12px;border:1.5px solid var(--ink);background:#FFFFFF;color:var(--ink);font:inherit;font-size:16px;font-weight:700;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
+.hud{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-variant-numeric:tabular-nums}
+.hud{align-items:center}
+.mini{height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:#FFFFFF;color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.hud .lv{font-size:16px}
+.hud .tm{font-size:26px;line-height:1.1;font-weight:800;color:var(--ink)}
+.splits{min-height:1.5em;font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}
+.best{display:inline-block;padding:4px 12px;border-radius:999px;background:var(--goal);color:var(--ink);font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.rec{font-size:30px;line-height:1.3;font-weight:800;font-variant-numeric:tabular-nums}
+.ttl{font-size:20px;line-height:1.4;font-weight:800;overflow-wrap:anywhere}
+.tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:6px;background:var(--goal);color:var(--ink);font-size:12px;font-weight:800;vertical-align:middle}
+.desc{font-size:14px;color:var(--ink-2);line-height:1.6}
+.stage{position:relative;border-radius:12px;overflow:hidden;background:var(--wall);line-height:0;width:100%;margin-inline:auto}
+/* 画面の高さが足りないPCでも、迷路の全体が見えるように幅をしぼる（縦横比 360:520） */
+.stage{width:min(100%, max(220px, calc((100dvh - 200px) * 0.6923)))}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(21,22,43,.82);color:#FFFFFF;font-size:19px;font-weight:800;line-height:1.6;text-align:center}
+.msg.bad{background:rgba(192,53,43,.88)}
+.hint{min-height:3.3em;font-size:13.5px;color:var(--ink-2);text-align:center}
+.big{font-size:22px;font-weight:800;line-height:1.5}
+.time{font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.scare{position:fixed;inset:0;z-index:100;background:#000000;overflow:hidden}
+.scare img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;scale:1.12;animation:shake .09s linear infinite, zoom 2.6s ease-out forwards}
+@keyframes shake{0%{translate:-1.2% .8%}25%{translate:1% -1%}50%{translate:-.8% -1.2%}75%{translate:1.2% 1%}100%{translate:-1.2% .8%}}
+@keyframes zoom{from{scale:1.12}to{scale:1.36}}
+@media (prefers-reduced-motion: reduce){.scare img{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="s-title">
+    <h1>集中力テスト</h1>
+    <p class="lead" style="margin-top:6px">青い点を、かべにふれずにゴールまで運ぶタイムアタックです。全3レベルの合計タイムを競います。</p>
+    <p class="best" id="best" style="margin-top:10px" hidden></p>
+    <div class="card" style="margin-top:16px">
+      <p class="catch">音と指先の感覚で、集中力を研ぎ澄ませ。</p>
+      <ol class="steps">
+        <li>スマホは、画面を指でなぞると点が動きます。</li>
+        <li>パソコンは、点をクリックするとマウスについてきます。</li>
+        <li>かべにふれたら＋3秒で、そのレベルの最初からです。</li>
+        <li>かべに近づくと、音で知らせます。音を出したほうが有利です。</li>
+      </ol>
+      <div class="sound">
+        <p>マナーモードを解除して、音が聞こえる音量にしてください。</p>
+        <button type="button" class="mini" id="b-sound">音を確かめる</button>
+      </div>
+      <p class="caution">音が出ます。心臓の弱い方、体調のすぐれない方はご遠慮ください。</p>
+    </div>
+    <button type="button" class="btn primary" id="b-start" style="margin-top:16px;width:100%">スタート</button>
+  </section>
+
+  <section id="s-game" hidden>
+    <div class="hud"><span class="lv" id="hud-lv">レベル 1 / 3</span><button type="button" class="mini" id="b-bgm" aria-pressed="true">音楽：オン</button><span class="tm" id="hud-tm">0.0 秒</span></div>
+    <p class="splits" id="hud-sp"></p>
+    <div class="stage" style="margin-top:8px">
+      <canvas id="cv" width="360" height="520" aria-label="迷路"></canvas>
+      <div class="msg" id="msg" hidden></div>
+    </div>
+    <p class="hint" id="hint" style="margin-top:10px"></p>
+  </section>
+
+  <section id="s-end" hidden>
+    <h1>ドッキリでした。</h1>
+    <p class="big" style="margin-top:12px">最後まで集中できたあなたの集中力は、本物です。</p>
+    <div class="card" style="margin-top:14px;gap:2px">
+      <p class="time">あなたの記録（レベル2まで）</p>
+      <p class="rec" id="end-rec"></p>
+      <p class="ttl" style="margin-top:8px"><span id="end-title"></span><span class="tag" id="end-tag" hidden></span></p>
+      <p class="desc" id="end-desc"></p>
+      <p class="time" id="end-time" style="margin-top:8px"></p>
+      <p class="time" id="end-col"></p>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <p>おどろいた人は、友だちにも試してもらいましょう。ネタバレは禁止です。</p>
+      <a class="btn primary" id="b-share" target="_blank" rel="noopener">Xでポストする</a>
+      <button type="button" class="btn" id="b-copy">リンクをコピー</button>
+      <button type="button" class="btn" id="b-retry">もう一回やる</button>
+    </div>
+    <p class="caution" style="margin-top:12px">このページは、音と画像でおどろかせるジョークです。データの収集や送信は行いません。</p>
+  </section>
+
+</div>
+
+<div class="scare" id="scare" hidden><img id="face" alt=""></div>
+
+<script>
+(() => {
+'use strict';
+const W = 360, H = 520;
+
+/* ===== 迷路（[x, y, 幅, 高さ] の通路を並べる） ===== */
+const LEVELS = [
+  { r: 7, start: [58, 468], goal: [286, 60, 44, 56],
+    rects: [[30, 440, 300, 56], [274, 200, 56, 296], [30, 200, 300, 56], [30, 60, 56, 196], [30, 60, 300, 56]] },
+  { r: 6, start: [40, 477], goal: [150, 50, 38, 34],
+    rects: [[20, 460, 320, 34], [306, 380, 34, 114], [20, 380, 320, 34], [20, 300, 34, 114], [20, 300, 320, 34],
+            [306, 220, 34, 114], [20, 220, 320, 34], [20, 140, 34, 114], [20, 140, 320, 34], [306, 50, 34, 124], [150, 50, 190, 34]] },
+  { r: 4, start: [42, 480], goal: [30, 74, 44, 48],
+    rects: [[20, 460, 320, 40], [300, 330, 40, 170], [120, 330, 220, 40], [120, 200, 26, 170], [120, 200, 200, 26],
+            [300, 90, 20, 136], [70, 90, 250, 16]] }
+];
+const LAST = LEVELS.length - 1;
+// 最終レベルの細い道。ここまで来たら、次のミスか、少し進んだところでドッキリ
+const NARROW_Y = 200;
+const inTrigger = (x, y) => y <= 106 && x <= 262;
+
+const inRect = (r, x, y) => x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3];
+function pointOk(lv, x, y) {
+  if (inRect(lv.goal, x, y)) return true;
+  for (const r of lv.rects) if (inRect(r, x, y)) return true;
+  return false;
+}
+function inside(lv, x, y) {
+  if (!pointOk(lv, x, y)) return false;
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    if (!pointOk(lv, x + Math.cos(a) * lv.r, y + Math.sin(a) * lv.r)) return false;
+  }
+  return true;
+}
+
+/* ===== 状態 ===== */
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), cx = cv.getContext('2d');
+const S = { state: 'title', level: 0, pos: { x: 0, y: 0 }, fails: 0, reachedNarrow: false, t0: 0, elapsed: 0, running: false, mouseFollow: false, dragging: false, last: null, touchUser: false, splits: [], penalties: 0, recPen: 0, missBy: [0, 0, 0], newBest: false, scareBy: '' };
+let msgTimer = 0;
+const PENALTY_MS = 3000;      // かべにふれたときの加算
+const SAFETY_FAILS = 5;       // 最終レベルで細い道に届かない人向けの保険
+const RECORD_LEVEL = LAST - 1; // 記録にするのは、ドッキリの前のレベルまでのタイム
+/* ===== 称号（このゲームの中で決めた基準。統計ではない） =====
+   [名前, ひとこと]。名前とひとことは、ポスト文にも出るので、ドッキリだと分かる言葉を入れない */
+const TITLES = {
+  // 特別な条件（上から順に当てはまったものを出す）
+  legend:    ['伝説の定時ダッシュ', 'ミスなしで10秒以内。もう、だれにも止められません。'],
+  perfect:   ['ノーミスの鉄人', '最初から最後まで、一度もかべにふれませんでした。'],
+  wall:      ['かべに愛された人', 'かべにふれた回数、10回以上。かべのほうが離してくれません。'],
+  stuck:     ['最終レベルに嫌われた人', '最終レベルで5回のミス。相性というものがあります。'],
+  best:      ['昨日の自分を超えた人', '自己ベスト更新。伸びしろしかありません。'],
+  regular:   ['このゲームの常連', '{n}回目のプレイ。そろそろ社員証を出してもいいころです。'],
+  morning:   ['朝が弱い人', 'レベル1で3回以上のミス。午前中はそっとしておいてください。'],
+  afternoon: ['午後から失速する人', '出だしは完ぺき。レベル2で3回以上のミス。お昼を食べすぎましたか。'],
+  late:      ['エンジンのかかりが遅い人', '長いレベル2のほうが、レベル1より速い。締め切り前に強いタイプです。'],
+  slow:      ['納期を気にしない職人', '2分以上かけて、じっくり。こだわりは伝わりました。'],
+  // まれに出る（特別な条件に当てはまらないとき、5%）
+  r1: ['社長の親戚', 'まれに出る称号。実力とは関係ありません。'],
+  r2: ['幻の有給取得者', 'まれに出る称号。本当に取れたんですか。'],
+  r3: ['宝くじが当たった同僚', 'まれに出る称号。来週から来ないかもしれません。'],
+  r4: ['給湯室の主', 'まれに出る称号。社内の情報は、だいたいここに集まります。'],
+  // タイム（f=20秒以内 g=35秒以内 m=60秒以内 s=それ以上）× レベル2までのミス（0=なし 1=1〜2回 2=3回以上）
+  f0: ['定時退社の神', 'ミスなしで20秒以内。今日も、だれより早く帰れます。'],
+  f1: ['勢いで乗り切る営業', '速い。少しぶつかったけど、気にしません。'],
+  f2: ['勢いだけの新人', '速さは本物。かべの数だけ、成長があります。'],
+  g0: ['頼れる中堅', 'ミスなしで手堅い。みんなが仕事を頼みたくなる人です。'],
+  g1: ['要領のいい同期', 'そこそこ速く、そこそこ正確。出世しそうです。'],
+  g2: ['謝るのが早い人', 'ぶつかっても立て直しが早い。それも才能です。'],
+  m0: ['石橋をたたく経理', 'ミスなし。数字が合うまで帰りません。'],
+  m1: ['査定はBの人', '可もなく不可もなく。いちばん長続きするタイプです。'],
+  m2: ['残業でカバーする人', 'ミスは時間で取り返す。体には気をつけて。'],
+  s0: ['確認に確認を重ねる法務', '時間はかかるが、ミスはゼロ。任せて安心です。'],
+  s1: ['月曜の朝の私', 'まだエンジンがかかっていません。'],
+  s2: ['金曜の夜の残り体力', 'よくここまで来ました。今日はもう休みましょう。']
+};
+const TITLE_COUNT = Object.keys(TITLES).length;
+const RARE = ['r1', 'r2', 'r3', 'r4'], RARE_RATE = 0.05;
+// c = { rec: レベル2までのタイム, recMiss: レベル2までのミス, missBy: レベルごとのミス, scareBy: 最後の出方, newBest, plays, l1, l2 }
+function decideTitle(c, rnd) {
+  const total = c.missBy.reduce((a, b) => a + b, 0);
+  if (c.rec <= 10000 && c.recMiss === 0) return 'legend';
+  if (total === 0 && c.scareBy === 'point') return 'perfect';
+  if (total >= 10) return 'wall';
+  if (c.scareBy === 'safety') return 'stuck';
+  if (c.newBest) return 'best';
+  if (c.plays > 0 && c.plays % 5 === 0) return 'regular';
+  if (c.missBy[0] >= 3) return 'morning';
+  if (c.missBy[0] === 0 && c.missBy[1] >= 3) return 'afternoon';
+  if (c.l2 < c.l1) return 'late';
+  if (c.rec > 120000) return 'slow';
+  if (rnd < RARE_RATE) return RARE[Math.min(RARE.length - 1, Math.floor(rnd / RARE_RATE * RARE.length))];
+  const t = c.rec <= 20000 ? 'f' : c.rec <= 35000 ? 'g' : c.rec <= 60000 ? 'm' : 's';
+  const m = c.recMiss === 0 ? 0 : c.recMiss <= 2 ? 1 : 2;
+  return t + m;
+}
+const store = {
+  get() { try { const v = Number(localStorage.getItem('shuchu:best')); return v > 0 ? v : null; } catch (e) { return null; } },
+  set(v) { try { localStorage.setItem('shuchu:best', String(Math.round(v))); } catch (e) { /* 保存できなくても動く */ } },
+  plays() { try { return Number(localStorage.getItem('shuchu:plays')) || 0; } catch (e) { return 0; } },
+  addPlay() { const n = this.plays() + 1; try { localStorage.setItem('shuchu:plays', String(n)); } catch (e) { /* 保存できなくても動く */ } return n; },
+  titles() { try { const a = JSON.parse(localStorage.getItem('shuchu:titles') || '[]'); return Array.isArray(a) ? a.filter(id => TITLES[id]) : []; } catch (e) { return []; } },
+  addTitle(id) { const a = this.titles(); const isNew = !a.includes(id); if (isNew) { a.push(id); try { localStorage.setItem('shuchu:titles', JSON.stringify(a)); } catch (e) { /* 保存できなくても動く */ } } return { isNew, count: a.length }; }
+};
+function showBest() {
+  const b = store.get(), el = $('#best'), n = store.titles().length;
+  el.hidden = !b && !n;
+  el.textContent = [b ? '自己ベスト（レベル2まで）：' + fmtTime(b) : '', n ? '集めた称号：' + n + ' / ' + TITLE_COUNT : ''].filter(Boolean).join('　');
+}
+function showSplits() {
+  $('#hud-sp').textContent = S.splits.length ? S.splits.map((t, i) => 'レベル' + (i + 1) + 'まで ' + fmtTime(t)).join('　') : '全3レベルの合計タイム';
+}
+
+function show(id) { for (const s of ['s-title', 's-game', 's-end']) $('#' + s).hidden = s !== id; }
+function setHint() {
+  const h = $('#hint');
+  if (S.state === 'ready') h.textContent = S.touchUser ? '画面のどこでもいいので、指でなぞってください。点が動きます。' : '青い点をクリックすると、マウスについてきます。スマホは指でなぞってください。';
+  else if (S.state === 'play') h.textContent = S.level !== LAST ? 'かべにふれないように、黄色いゴールまで。急いで。' : S.reachedNarrow ? 'ここからが本番です。画面に顔を近づけて、ゆっくり進んでください。' : '最終レベル。この先、道が細くなります。';
+  else h.textContent = '';
+}
+function message(text, bad, ms, then) {
+  const m = $('#msg');
+  m.textContent = text; m.classList.toggle('bad', !!bad); m.hidden = false;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { m.hidden = true; if (then) then(); }, ms);
+}
+function loadLevel(n) {
+  S.level = n;
+  const lv = LEVELS[n];
+  S.pos = { x: lv.start[0], y: lv.start[1] };
+  S.state = 'ready'; S.mouseFollow = false; S.dragging = false; S.last = null;
+  if (n === LAST) S.reachedNarrow = false;
+  $('#hud-lv').textContent = 'レベル ' + (n + 1) + ' / ' + LEVELS.length;
+  startBgm(n === LAST ? 'tense' : 'calm');
+  showSplits();
+  setHint();
+}
+function startTimer() { if (!S.running) { S.running = true; S.t0 = performance.now(); } }
+function stopTimer() { if (S.running) { S.elapsed += performance.now() - S.t0; S.running = false; } }
+const nowElapsed = () => S.elapsed + (S.running ? performance.now() - S.t0 : 0);
+const fmtTime = ms => (ms / 1000).toFixed(1) + ' 秒';
+
+/* ===== 音 ===== */
+let ac = null, out = null;
+function initAudio() {
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ac = new AC();
+    out = ac.createDynamicsCompressor();
+    out.connect(ac.destination);
+  } catch (e) { ac = null; }
+}
+function beep(freq, dur, type, vol, delay) {
+  if (!ac) return;
+  const t = ac.currentTime + (delay || 0);
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol || 0.08, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+}
+/* 音楽：ファイルを使わず、その場で音を作って鳴らす。calm＝おだやか、tense＝最終レベル用の不安な音 */
+const BGM = {
+  calm: { step: 0.42, vol: 0.9, pad: [130.81, 196.0], padVol: 0.05, noteVol: 0.16, len: 1.1,
+          notes: [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 587.33, 783.99, 440.0, 523.25, 659.25, 880.0, 659.25, 523.25, 493.88, 659.25] },
+  tense: { step: 0.7, vol: 0.8, pad: [55.0, 58.27], padVol: 0.12, noteVol: 0.13, len: 1.8,
+           notes: [220.0, 261.63, 311.13, 261.63, 207.65, 261.63, 311.13, 233.08] }
+};
+let bgm = null, musicOn = true;
+function stopBgm() {
+  if (!bgm) return;
+  clearInterval(bgm.timer);
+  try { bgm.g.gain.cancelScheduledValues(ac.currentTime); bgm.g.gain.setValueAtTime(0, ac.currentTime); } catch (e) { /* 止まっていれば何もしない */ }
+  for (const o of bgm.pads) { try { o.stop(); } catch (e) { /* すでに停止 */ } }
+  const g = bgm.g; setTimeout(() => { try { g.disconnect(); } catch (e) { /* 切断済み */ } }, 100);
+  bgm = null;
+}
+function startBgm(mode) {
+  if (!ac) return;
+  if (bgm && bgm.mode === mode) return;
+  stopBgm();
+  const c = BGM[mode], t = ac.currentTime;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(musicOn ? c.vol : 0.0001, t + 1.5);
+  g.connect(out);
+  const pads = c.pad.map(f => {
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f; og.gain.value = c.padVol;
+    o.connect(og); og.connect(g); o.start(t);
+    return o;
+  });
+  const b = { mode, g, pads, i: 0, next: t + 0.2, timer: 0 };
+  b.timer = setInterval(() => {
+    while (b.next < ac.currentTime + 0.35) {
+      const f = c.notes[b.i % c.notes.length], at = b.next;
+      for (const [mul, type, v] of [[1, 'sine', 1], [2, 'triangle', 0.25]]) {
+        const o = ac.createOscillator(), og = ac.createGain();
+        o.type = type; o.frequency.value = f * mul;
+        og.gain.setValueAtTime(0.0001, at);
+        og.gain.exponentialRampToValueAtTime(c.noteVol * v, at + 0.015);
+        og.gain.exponentialRampToValueAtTime(0.0001, at + c.len);
+        o.connect(og); og.connect(g); o.start(at); o.stop(at + c.len + 0.05);
+      }
+      b.i++; b.next += c.step;
+    }
+  }, 100);
+  bgm = b;
+}
+function setMusic(on) {
+  musicOn = on;
+  $('#b-bgm').textContent = '音楽：' + (on ? 'オン' : 'オフ');
+  $('#b-bgm').setAttribute('aria-pressed', String(on));
+  if (bgm && ac) { bgm.g.gain.cancelScheduledValues(ac.currentTime); bgm.g.gain.linearRampToValueAtTime(on ? BGM[bgm.mode].vol : 0.0001, ac.currentTime + 0.3); }
+}
+const sndStart = () => { beep(660, 0.12, 'sine', 0.1); };
+const sndClear = () => { beep(660, 0.12, 'sine', 0.12); beep(880, 0.12, 'sine', 0.12, 0.12); beep(1320, 0.22, 'sine', 0.12, 0.24); };
+const sndFail = () => { beep(140, 0.28, 'square', 0.09); };
+// かべに近づくと鳴る音：1＝近い、2＝すぐそば（近いほど高く、細かく鳴る）
+let lastTick = 0;
+function nearWall(lv, x, y) {
+  const far = extra => { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; if (!pointOk(lv, x + Math.cos(a) * (lv.r + extra), y + Math.sin(a) * (lv.r + extra))) return true; } return false; };
+  return far(2) ? 2 : far(6) ? 1 : 0;
+}
+function tickNear(lv, x, y) {
+  const n = nearWall(lv, x, y);
+  if (!n) return;
+  const now = performance.now();
+  if (now - lastTick < (n === 2 ? 90 : 220)) return;
+  lastTick = now;
+  beep(n === 2 ? 1500 : 950, 0.045, 'square', n === 2 ? 0.07 : 0.05);
+}
+function scream() {
+  if (!ac) return;
+  const t = ac.currentTime, D = 2.4;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  // 叫び声は、音楽よりはっきり大きいが、耳を痛めるほどの差にはしない（イヤホンで遊ぶ人のため）
+  g.gain.exponentialRampToValueAtTime(0.6, t + 0.03);
+  g.gain.setValueAtTime(0.6, t + D - 0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + D);
+  g.connect(out);
+  [520, 790, 1130, 1490].forEach((f, i) => {
+    const o = ac.createOscillator(), og = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+    o.type = i % 2 ? 'square' : 'sawtooth';
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.linearRampToValueAtTime(f * 1.6, t + 0.25);
+    o.frequency.linearRampToValueAtTime(f * 1.25, t + D);
+    lfo.frequency.value = 17 + i * 5; lg.gain.value = f * 0.08;
+    lfo.connect(lg); lg.connect(o.frequency);
+    og.gain.value = 0.2; o.connect(og); og.connect(g);
+    o.start(t); lfo.start(t); o.stop(t + D + 0.05); lfo.stop(t + D + 0.05);
+  });
+  const len = Math.floor(ac.sampleRate * D), buf = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+  const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+  n.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.7; ng.gain.value = 0.45;
+  n.connect(bp); bp.connect(ng); ng.connect(g); n.start(t);
+}
+
+/* ===== ドッキリの顔（face.jpg があればそれ、なければ描いた顔） ===== */
+function drawnFace() {
+  const c = document.createElement('canvas'); c.width = 720; c.height = 1080;
+  const x = c.getContext('2d');
+  const T = Math.PI * 2;
+  x.fillStyle = '#000000'; x.fillRect(0, 0, 720, 1080);
+  // 顔：下から弱い光が当たった白い肌
+  let g = x.createRadialGradient(360, 620, 40, 360, 560, 440);
+  g.addColorStop(0, '#F5F2ED'); g.addColorStop(0.55, '#CFC9C2'); g.addColorStop(1, '#4E4945');
+  x.fillStyle = g; x.beginPath(); x.moveTo(110, 470);
+  x.bezierCurveTo(110, 170, 610, 170, 610, 470); x.bezierCurveTo(610, 770, 480, 990, 360, 990); x.bezierCurveTo(240, 990, 110, 770, 110, 470); x.fill();
+  // 目：くぼみの影と、黒目だけの大きな目
+  for (const ex of [236, 484]) {
+    const s = ex < 360 ? 1 : -1;
+    g = x.createRadialGradient(ex, 482, 40, ex, 482, 150); g.addColorStop(0, 'rgba(45,30,32,.9)'); g.addColorStop(1, 'rgba(45,30,32,0)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, 482, 150, 122, 0, 0, T); x.fill();
+    x.fillStyle = '#020202'; x.beginPath(); x.ellipse(ex, 484, 88, 68, -0.07 * s, 0, T); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.95)'; x.beginPath(); x.arc(ex + 18 * s, 474, 4.5, 0, T); x.fill();
+  }
+  // 鼻の影と鼻の穴
+  g = x.createRadialGradient(360, 700, 6, 360, 690, 70); g.addColorStop(0, 'rgba(60,48,46,.55)'); g.addColorStop(1, 'rgba(60,48,46,0)');
+  x.fillStyle = g; x.beginPath(); x.ellipse(360, 690, 70, 40, 0, 0, T); x.fill();
+  x.fillStyle = 'rgba(25,15,15,.8)';
+  for (const nx of [338, 382]) { x.beginPath(); x.ellipse(nx, 700, 9, 5, 0, 0, T); x.fill(); }
+  // 口：横に長すぎる薄い笑い
+  x.fillStyle = '#2E0F13'; x.beginPath(); x.moveTo(190, 806); x.quadraticCurveTo(360, 930, 530, 806); x.quadraticCurveTo(360, 858, 190, 806); x.fill();
+  x.strokeStyle = 'rgba(46,15,19,.75)'; x.lineWidth = 5; x.lineCap = 'round';
+  for (const s of [1, -1]) { x.beginPath(); x.moveTo(360 - 170 * s, 806); x.quadraticCurveTo(360 - 196 * s, 786, 360 - 204 * s, 752); x.stroke(); }
+  // 顔にかかる髪
+  x.strokeStyle = '#070707';
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 74; i++) {
+    const sx = 110 + rnd() * 500, bend = (rnd() - 0.5) * 240, ey = 380 + rnd() * 700;
+    x.lineWidth = 1.2 + rnd() * rnd() * 9;
+    x.beginPath(); x.moveTo(sx, 140 + rnd() * 80); x.quadraticCurveTo(sx + bend, ey * 0.55, sx + bend * 0.35, ey); x.stroke();
+  }
+  x.fillStyle = '#070707'; x.beginPath(); x.ellipse(360, 170, 340, 170, 0, Math.PI, 0); x.fill();
+  x.beginPath(); x.moveTo(0, 170); x.lineTo(150, 170); x.quadraticCurveTo(90, 600, 170, 1080); x.lineTo(0, 1080); x.fill();
+  x.beginPath(); x.moveTo(720, 170); x.lineTo(570, 170); x.quadraticCurveTo(630, 600, 550, 1080); x.lineTo(720, 1080); x.fill();
+  // まわりを暗く落とす
+  g = x.createRadialGradient(360, 560, 250, 360, 560, 660); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.95)');
+  x.fillStyle = g; x.fillRect(0, 0, 720, 1080);
+  return c.toDataURL('image/jpeg', 0.88);
+}
+// 顔は face.jpg, face2.jpg, face3.jpg … の順に置く。枚数は下の FACE_COUNT（tools/add_faces.py が画像を足すと書きかえる）。
+// 1回遊ぶごとに1枚だけ読み込み、前回と違う顔を選ぶ
+const FACE_COUNT = 9;
+const FACE_FILES = Array.from({ length: FACE_COUNT }, (_, i) => (i ? 'face' + (i + 1) + '.jpg' : 'face.jpg'));
+const face = $('#face');
+let drawn = null, lastFace = null, readyFace = null;
+try { lastFace = localStorage.getItem('shuchu:face'); } catch (e) { lastFace = null; }
+function prepareFace() {
+  readyFace = null;
+  const order = FACE_FILES.filter(f => f !== lastFace);
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  if (FACE_FILES.includes(lastFace)) order.push(lastFace); // ほかに1枚もないときだけ、前回と同じ顔
+  const tryNext = i => {
+    if (i >= order.length) return;
+    const im = new Image();
+    im.onload = () => { readyFace = { file: order[i], url: im.src }; };
+    im.onerror = () => tryNext(i + 1);
+    im.src = order[i];
+  };
+  tryNext(0);
+}
+function pickFace() {
+  if (!readyFace) return drawn || (drawn = drawnFace());
+  lastFace = readyFace.file;
+  try { localStorage.setItem('shuchu:face', lastFace); } catch (e) { /* 保存できなくても動く */ }
+  return readyFace.url;
+}
+prepareFace();
+
+function scare(by) {
+  if (S.state === 'scare' || S.state === 'end') return;
+  S.scareBy = by || 'point';
+  S.state = 'scare'; stopTimer(); setHint();
+  clearTimeout(msgTimer); $('#msg').hidden = true;
+  face.src = pickFace();
+  $('#scare').hidden = false;
+  stopBgm();
+  scream();
+  try { if (navigator.vibrate) navigator.vibrate([250, 60, 350, 60, 500]); } catch (e) { /* 振動なしでも動く */ }
+  setTimeout(() => {
+    $('#scare').hidden = true;
+    prepareFace();
+    S.state = 'end';
+    const rec = S.splits[RECORD_LEVEL];
+    let name = '';
+    if (rec != null) {
+      const plays = store.addPlay();
+      const id = decideTitle({ rec, recMiss: S.recPen, missBy: S.missBy, scareBy: S.scareBy, newBest: S.newBest, plays, l1: S.splits[0], l2: rec - S.splits[0] }, Math.random());
+      const got = store.addTitle(id);
+      name = TITLES[id][0];
+      $('#end-rec').textContent = fmtTime(rec);
+      $('#end-title').textContent = '称号：「' + name + '」';
+      $('#end-tag').textContent = RARE.includes(id) ? 'レア' : got.isNew ? '初' : '';
+      $('#end-tag').hidden = !$('#end-tag').textContent;
+      $('#end-desc').textContent = TITLES[id][1].replace('{n}', plays);
+      const best = store.get();
+      $('#end-time').textContent = (best && best < rec ? '自己ベスト：' + fmtTime(best) : '自己ベストです') + (S.recPen ? '（ミス ' + S.recPen + '回・＋' + S.recPen * 3 + '秒を含む）' : '（ミスなし）');
+      $('#end-col').textContent = '集めた称号：' + got.count + ' / ' + TITLE_COUNT + ' 種類';
+    } else {
+      $('#end-rec').textContent = '—'; $('#end-title').textContent = ''; $('#end-tag').hidden = true; $('#end-desc').textContent = ''; $('#end-time').textContent = ''; $('#end-col').textContent = '';
+    }
+    $('#b-share').href = 'https://x.com/intent/post?text=' + encodeURIComponent('集中力テスト（タイムアタック）\n' + (rec != null ? 'レベル2まで ' + fmtTime(rec).replace(' ', '') + '、称号は「' + name + '」だった。\n' : '') + '最終レベルがむずかしい。このタイム、抜ける人いる？' + (pageUrl ? '\n' + pageUrl : ''));
+    show('s-end'); window.scrollTo(0, 0);
+  }, 2600);
+}
+
+/* ===== 動き ===== */
+function hitWall() {
+  const lv = S.level;
+  S.missBy[lv]++;
+  if (lv === LAST) { S.fails++; if (S.reachedNarrow) { scare('narrow'); return; } if (S.fails >= SAFETY_FAILS) { scare('safety'); return; } }
+  S.state = 'fail'; stopTimer(); S.elapsed += PENALTY_MS; S.penalties++; sndFail(); setHint();
+  message('かべにふれました。＋3秒', true, 800, () => loadLevel(lv));
+}
+function clearLevel() {
+  S.state = 'clear'; stopTimer(); sndClear(); setHint();
+  const next = S.level + 1;
+  if (next > LAST) { scare('goal'); return; }
+  S.splits[S.level] = S.elapsed;
+  if (S.level === RECORD_LEVEL) { S.recPen = S.penalties; const b = store.get(); S.newBest = !!b && S.elapsed < b; if (!b || S.elapsed < b) store.set(S.elapsed); }
+  showSplits();
+  message((next === LAST ? 'ここまで ' + fmtTime(S.elapsed) + '。次が最終レベルです。' : 'クリア。ここまで ' + fmtTime(S.elapsed) + '。次はレベル' + (next + 1) + 'です。'), false, 1300, () => loadLevel(next));
+}
+function moveTo(tx, ty) {
+  const lv = LEVELS[S.level];
+  const dx = tx - S.pos.x, dy = ty - S.pos.y, d = Math.hypot(dx, dy);
+  if (d === 0) return;
+  const steps = Math.ceil(d / 1.5);
+  for (let i = 1; i <= steps; i++) {
+    const x = S.pos.x + dx * i / steps, y = S.pos.y + dy * i / steps;
+    if (!inside(lv, x, y)) { hitWall(); return; }
+    if (S.level === LAST) {
+      if (y < NARROW_Y && !S.reachedNarrow) { S.reachedNarrow = true; setHint(); }
+      if (inTrigger(x, y)) { S.pos = { x, y }; scare('point'); return; }
+    }
+    if (inRect(lv.goal, x, y)) { S.pos = { x, y }; clearLevel(); return; }
+  }
+  S.pos = { x: tx, y: ty };
+  tickNear(lv, tx, ty);
+}
+function toLogical(e) {
+  const b = cv.getBoundingClientRect();
+  return { x: (e.clientX - b.left) * W / b.width, y: (e.clientY - b.top) * H / b.height };
+}
+function begin() { S.state = 'play'; startTimer(); sndStart(); setHint(); }
+cv.addEventListener('pointerdown', e => {
+  if (S.state !== 'ready' && S.state !== 'play') return;
+  e.preventDefault();
+  const p = toLogical(e);
+  if (e.pointerType === 'mouse') {
+    if (S.state === 'ready') {
+      if (Math.hypot(p.x - S.pos.x, p.y - S.pos.y) > 26) return;
+      S.mouseFollow = true; begin();
+    }
+  } else {
+    S.touchUser = true;
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* なくても動く */ }
+    S.dragging = true; S.last = p;
+    if (S.state === 'ready') begin();
+  }
+});
+cv.addEventListener('pointermove', e => {
+  if (S.state !== 'play') return;
+  const p = toLogical(e);
+  if (e.pointerType === 'mouse') { if (S.mouseFollow) moveTo(p.x, p.y); }
+  else if (S.dragging && S.last) { const nx = S.pos.x + (p.x - S.last.x), ny = S.pos.y + (p.y - S.last.y); S.last = p; moveTo(nx, ny); }
+});
+const endDrag = () => { S.dragging = false; S.last = null; };
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ===== 描画 ===== */
+function fit() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.width = W * dpr; cv.height = H * dpr;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function draw() {
+  if (!$('#s-game').hidden) {
+    const lv = LEVELS[S.level];
+    cx.fillStyle = '#15162B'; cx.fillRect(0, 0, W, H);
+    cx.fillStyle = '#E3E6FD';
+    for (const r of lv.rects) cx.fillRect(r[0], r[1], r[2], r[3]);
+    const g = lv.goal;
+    cx.fillStyle = '#FFD23F'; cx.fillRect(g[0], g[1], g[2], g[3]);
+    cx.fillStyle = '#15162B'; cx.font = '700 11px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('ゴール', g[0] + g[2] / 2, g[1] + g[3] / 2);
+    if (S.state === 'ready') {
+      const k = (performance.now() % 1200) / 1200;
+      cx.strokeStyle = 'rgba(47,59,219,' + (1 - k).toFixed(2) + ')'; cx.lineWidth = 2;
+      cx.beginPath(); cx.arc(S.pos.x, S.pos.y, lv.r + 3 + k * 14, 0, Math.PI * 2); cx.stroke();
+    }
+    cx.fillStyle = '#2F3BDB'; cx.beginPath(); cx.arc(S.pos.x, S.pos.y, lv.r, 0, Math.PI * 2); cx.fill();
+    $('#hud-tm').textContent = fmtTime(nowElapsed());
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ===== ボタン ===== */
+function newGame() {
+  S.elapsed = 0; S.running = false; S.fails = 0; S.reachedNarrow = false; S.splits = []; S.penalties = 0; S.recPen = 0; S.missBy = LEVELS.map(() => 0); S.newBest = false; S.scareBy = '';
+  show('s-game'); loadLevel(0);
+}
+showBest();
+$('#b-start').addEventListener('click', () => { initAudio(); newGame(); });
+$('#b-retry').addEventListener('click', () => { initAudio(); newGame(); });
+const pageUrl = /^https?:/.test(location.href) ? location.href.split('#')[0].split('?')[0] : '';
+$('#b-share').href = 'https://x.com/intent/post?text=' + encodeURIComponent('集中力テスト、最終レベルがむずかしい。\nクリアできる人いる？' + (pageUrl ? '\n' + pageUrl : ''));
+$('#b-copy').addEventListener('click', async () => {
+  const b = $('#b-copy'), text = pageUrl || location.href;
+  try { await navigator.clipboard.writeText(text); b.textContent = 'コピーしました'; }
+  catch (e) { b.textContent = 'コピーできませんでした'; }
+  setTimeout(() => { b.textContent = 'リンクをコピー'; }, 1800);
+});
+$('#b-bgm').addEventListener('click', () => setMusic(!musicOn));
+$('#b-sound').addEventListener('click', () => { initAudio(); sndClear(); $('#b-sound').textContent = 'もう一度鳴らす'; });
+document.addEventListener('visibilitychange', () => {
+  if (!ac) return;
+  if (document.hidden) ac.suspend(); else ac.resume();
+});
+window.addEventListener('resize', fit);
+fit(); requestAnimationFrame(draw);
+
+// 動作確認用
+window.__maze = { W, H, LEVELS, inside, inRect, inTrigger, NARROW_Y, S, scare, loadLevel, moveTo, newGame, pickFace, prepareFace, faceReady: () => (readyFace ? readyFace.file : null), TITLES, RARE, RARE_RATE, decideTitle, nearWall, bgmMode: () => (bgm ? bgm.mode : null), audioState: () => (ac ? ac.state : null) };
+})();
+</script>
+</body>
+</html>
