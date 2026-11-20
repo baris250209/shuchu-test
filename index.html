@@ -55,6 +55,10 @@ p{margin:0}
 /* 画面の高さが足りないPCでも、迷路の全体が見えるように幅をしぼる（縦横比 360:520） */
 .stage{width:min(100%, max(220px, calc((100dvh - 200px) * 0.6923)))}
 canvas{display:block;width:100%;height:auto;touch-action:none}
+/* 持ち手とワイヤーを描く、画面いっぱいの透明な層（さわれない） */
+#ov{position:fixed;inset:0;z-index:50;width:100%;height:100%;pointer-events:none}
+/* ゲーム中は、迷路の外をなぞっても画面が動かないようにする */
+html.game,html.game body{touch-action:none}
 .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(21,22,43,.82);color:#FFFFFF;font-size:19px;font-weight:800;line-height:1.6;text-align:center}
 .msg.bad{background:rgba(192,53,43,.88)}
 .hint{min-height:3.3em;font-size:13.5px;color:var(--ink-2);text-align:center}
@@ -78,7 +82,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
     <div class="card" style="margin-top:16px">
       <p class="catch">音と指先の感覚で、集中力を研ぎ澄ませ。</p>
       <ol class="steps">
-        <li>スマホは、画面を指でなぞると点が動きます。</li>
+        <li>スマホは、点につながった持ち手を指でつかんで動かします。</li>
         <li>パソコンは、点をクリックするとマウスについてきます。</li>
         <li>かべにふれたら＋3秒で、そのレベルの最初からです。</li>
         <li>かべに近づくと、音で知らせます。音を出したほうが有利です。</li>
@@ -96,11 +100,12 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
   <section id="s-game" hidden>
     <div class="hud"><span class="lv" id="hud-lv">レベル 1 / 3</span><button type="button" class="mini" id="b-bgm" aria-pressed="true">音楽：オン</button><span class="tm" id="hud-tm">0.0 秒</span></div>
     <p class="splits" id="hud-sp"></p>
-    <div class="stage" style="margin-top:8px">
+    <!-- 案内は迷路の上に置く。迷路の下は、持ち手をつかむ場所として空けておく -->
+    <p class="hint" id="hint" style="margin-top:4px"></p>
+    <div class="stage" style="margin-top:6px">
       <canvas id="cv" width="360" height="520" aria-label="迷路"></canvas>
       <div class="msg" id="msg" hidden></div>
     </div>
-    <p class="hint" id="hint" style="margin-top:10px"></p>
   </section>
 
   <section id="s-end" hidden>
@@ -126,6 +131,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 
 </div>
 
+<canvas id="ov" aria-hidden="true" hidden></canvas>
 <div class="scare" id="scare" hidden><img id="face" alt=""></div>
 
 <script>
@@ -167,7 +173,9 @@ function inside(lv, x, y) {
 /* ===== 状態 ===== */
 const $ = s => document.querySelector(s);
 const cv = $('#cv'), cx = cv.getContext('2d');
-const S = { state: 'title', level: 0, pos: { x: 0, y: 0 }, fails: 0, reachedNarrow: false, t0: 0, elapsed: 0, running: false, mouseFollow: false, dragging: false, last: null, touchUser: false, splits: [], penalties: 0, recPen: 0, missBy: [0, 0, 0], newBest: false, scareBy: '' };
+const S = { state: 'title', level: 0, pos: { x: 0, y: 0 }, fails: 0, reachedNarrow: false, t0: 0, elapsed: 0, running: false, mouseFollow: false, dragging: false, last: null, grip: null, slack: false, pid: null, touchUser: false, splits: [], penalties: 0, recPen: 0, missBy: [0, 0, 0], newBest: false, scareBy: '' };
+// 指でさわる端末なら、最初から持ち手を見せる（分からないときは、マウス向けの案内から始める）
+try { S.touchUser = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) { /* 分からなくても動く */ }
 let msgTimer = 0;
 const PENALTY_MS = 3000;      // かべにふれたときの加算
 const SAFETY_FAILS = 5;       // 最終レベルで細い道に届かない人向けの保険
@@ -242,12 +250,28 @@ function showSplits() {
   $('#hud-sp').textContent = S.splits.length ? S.splits.map((t, i) => 'レベル' + (i + 1) + 'まで ' + fmtTime(t)).join('　') : '全3レベルの合計タイム';
 }
 
-function show(id) { for (const s of ['s-title', 's-game', 's-end']) $('#' + s).hidden = s !== id; }
+function show(id) {
+  for (const s of ['s-title', 's-game', 's-end']) $('#' + s).hidden = s !== id;
+  if (id !== 's-game') gripUp();
+  syncLock();
+}
+// ゲームの画面が1画面におさまるときだけ、迷路の外もなぞれるようにして、画面を固定する（html.game）。
+// おさまらない端末（横向きなど）は、迷路の中だけで動かし、外はこれまでどおりスクロールに使える
+function syncLock() {
+  const g = $('#s-game');
+  const fits = !g.hidden && g.getBoundingClientRect().bottom + (window.scrollY || 0) <= window.innerHeight + 2;
+  document.documentElement.classList.toggle('game', fits);
+}
+const locked = () => document.documentElement.classList.contains('game');
+let hintMin = 0;
 function setHint() {
   const h = $('#hint');
-  if (S.state === 'ready') h.textContent = S.touchUser ? '画面のどこでもいいので、指でなぞってください。点が動きます。' : '青い点をクリックすると、マウスについてきます。スマホは指でなぞってください。';
+  if (S.state === 'ready') h.textContent = S.touchUser ? '三角の持ち手を指でつかんで、動かしてください。' : '青い点をクリックすると、マウスについてきます。';
   else if (S.state === 'play') h.textContent = S.level !== LAST ? 'かべにふれないように、黄色いゴールまで。急いで。' : S.reachedNarrow ? 'ここからが本番です。ゆっくり進んでください。' : '最終レベル。この先、道が細くなります。';
   else h.textContent = '';
+  // 案内の高さは、いちど広がったら縮めない（さわった瞬間に、迷路の位置がずれないように）
+  const hh = h.offsetHeight;
+  if (hh > hintMin) { hintMin = hh; h.style.minHeight = hh + 'px'; }
 }
 function message(text, bad, ms, then) {
   const m = $('#msg');
@@ -259,12 +283,13 @@ function loadLevel(n) {
   S.level = n;
   const lv = LEVELS[n];
   S.pos = { x: lv.start[0], y: lv.start[1] };
-  S.state = 'ready'; S.mouseFollow = false; S.dragging = false; S.last = null;
+  S.state = 'ready'; S.mouseFollow = false; S.dragging = false; S.last = null; S.grip = null; S.slack = false;
   if (n === LAST) S.reachedNarrow = false;
   $('#hud-lv').textContent = 'レベル ' + (n + 1) + ' / ' + LEVELS.length;
   startBgm(n === LAST ? 'tense' : 'calm');
   showSplits();
   setHint();
+  syncLock();
 }
 function startTimer() { if (!S.running) { S.running = true; S.t0 = performance.now(); } }
 function stopTimer() { if (S.running) { S.elapsed += performance.now() - S.t0; S.running = false; } }
@@ -555,31 +580,80 @@ function toLogical(e) {
   return { x: (e.clientX - b.left) * W / b.width, y: (e.clientY - b.top) * H / b.height };
 }
 function begin() { S.state = 'play'; startTimer(); sndStart(); setHint(); }
-cv.addEventListener('pointerdown', e => {
-  if (S.state !== 'ready' && S.state !== 'play') return;
-  e.preventDefault();
-  const p = toLogical(e);
-  if (e.pointerType === 'mouse') {
-    if (S.state === 'ready') {
-      if (Math.hypot(p.x - S.pos.x, p.y - S.pos.y) > 26) return;
-      S.mouseFollow = true; begin();
-    }
-  } else {
-    S.touchUser = true;
-    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* なくても動く */ }
-    S.dragging = true; S.last = p;
-    if (S.state === 'ready') begin();
+
+/* ===== 持ち手（スマホ） =====
+   指の下に点がかくれないように、ハンマー投げのハンマーのように「持ち手 → ワイヤー → 点」で見せる。
+   動かし方はこれまでと同じで、指が動いたぶんだけ点が動く（画面のどこをなぞってもいい）。
+   点のすぐ近くに指を置いたときだけ、ワイヤーが MIN_WIRE の長さになるまで点を動かさない
+   （指の下から点を出すため）。
+   f は指の、画面上の位置（px）。v は迷路の見え方 { x, y: 迷路の左上の画面上の位置, k: 迷路の1が画面で何pxか }。
+   指の動きは「画面上で何px動いたか」で測る。迷路の位置が途中でずれても、点が飛ばないようにするため */
+const MIN_WIRE = 52;   // 画面上のpx。これより近くをさわったら、先にワイヤーをのばす
+const REST_WIRE = 76;  // 指をはなしているときの、点から持ち手までの長さ（画面上のpx）
+const view = () => { const b = cv.getBoundingClientRect(); return { x: b.left, y: b.top, k: b.width / W || 1 }; };
+const onScreen = v => ({ x: v.x + S.pos.x * v.k, y: v.y + S.pos.y * v.k }); // 点の、画面上の位置
+function gripDown(f, v) {
+  const b = onScreen(v);
+  S.dragging = true; S.last = f; S.grip = f;
+  S.slack = Math.hypot(f.x - b.x, f.y - b.y) < MIN_WIRE;
+}
+function gripMove(f, v) {
+  if (!S.dragging || !S.last) return;
+  S.grip = f;
+  if (S.slack) {
+    const b = onScreen(v);
+    if (Math.hypot(f.x - b.x, f.y - b.y) < MIN_WIRE) return;
+    S.slack = false; S.last = f; return;
   }
+  const nx = S.pos.x + (f.x - S.last.x) / v.k, ny = S.pos.y + (f.y - S.last.y) / v.k;
+  S.last = f; moveTo(nx, ny);
+}
+function gripUp() { S.dragging = false; S.last = null; S.grip = null; S.slack = false; }
+// 指をはなしているときに持ち手を置く場所（画面上の位置）。点の真下。下に置けないときは横。
+// box は持ち手を置いていい範囲の右端 r と下端 b（画面全体か、迷路の中）
+function restGrip(bx, by, box) {
+  const y = Math.min(by + REST_WIRE, box.b - 30);
+  if (y - by >= MIN_WIRE) return { x: bx, y };
+  return bx + REST_WIRE <= box.r - 30 ? { x: bx + REST_WIRE, y: by } : { x: bx - REST_WIRE, y: by };
+}
+
+// 指（とペン）：迷路の外をなぞっても動く。ボタンの上は除く
+const inGame = () => !$('#s-game').hidden && (S.state === 'ready' || S.state === 'play');
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' || !inGame()) return;
+  if (e.target && e.target.closest && e.target.closest('button, a')) return;
+  if (!locked() && e.target !== cv) return; // 1画面におさまらない端末では、迷路の中だけ（外はスクロールに使う）
+  if (e.cancelable) e.preventDefault();
+  S.touchUser = true; S.pid = e.pointerId;
+  if (S.state === 'ready') begin(); // 先に案内の文を切りかえてから、指と点の位置を測る
+  gripDown({ x: e.clientX, y: e.clientY }, view());
+});
+document.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse' || e.pointerId !== S.pid || S.state !== 'play') return;
+  gripMove({ x: e.clientX, y: e.clientY }, view());
+});
+const endDrag = e => { if (e.pointerType !== 'mouse' && e.pointerId === S.pid) gripUp(); };
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+// 古いブラウザ向け：ゲーム中になぞっている間は、画面のスクロールや「引っぱって更新」を止める
+document.addEventListener('touchmove', e => { if (S.dragging && inGame() && e.cancelable) e.preventDefault(); }, { passive: false });
+
+// マウス：点をクリックすると、マウスについてくる（これまでどおり）
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || (S.state !== 'ready' && S.state !== 'play')) return;
+  e.preventDefault();
+  if (S.state !== 'ready') return;
+  const p = toLogical(e);
+  if (Math.hypot(p.x - S.pos.x, p.y - S.pos.y) > 26) return;
+  S.touchUser = false; S.mouseFollow = true; begin();
 });
 cv.addEventListener('pointermove', e => {
-  if (S.state !== 'play') return;
-  const p = toLogical(e);
-  if (e.pointerType === 'mouse') { if (S.mouseFollow) moveTo(p.x, p.y); }
-  else if (S.dragging && S.last) { const nx = S.pos.x + (p.x - S.last.x), ny = S.pos.y + (p.y - S.last.y); S.last = p; moveTo(nx, ny); }
+  if (e.pointerType !== 'mouse') return;
+  // 指でさわる端末と見ていたのにマウスが動いたら、マウス向けの案内（点のまわりの輪）に切りかえる
+  if (S.state === 'ready' && S.touchUser) { S.touchUser = false; setHint(); return; }
+  if (S.state !== 'play' || !S.mouseFollow) return;
+  const p = toLogical(e); moveTo(p.x, p.y);
 });
-const endDrag = () => { S.dragging = false; S.last = null; };
-cv.addEventListener('pointerup', endDrag);
-cv.addEventListener('pointercancel', endDrag);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ===== 描画 ===== */
@@ -598,15 +672,63 @@ function draw() {
     cx.fillStyle = '#FFD23F'; cx.fillRect(g[0], g[1], g[2], g[3]);
     cx.fillStyle = '#15162B'; cx.font = '700 11px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
     cx.fillText('ゴール', g[0] + g[2] / 2, g[1] + g[3] / 2);
-    if (S.state === 'ready') {
+    const hammer = S.touchUser && (S.state === 'ready' || S.state === 'play');
+    if (S.state === 'ready' && !hammer) {
       const k = (performance.now() % 1200) / 1200;
       cx.strokeStyle = 'rgba(47,59,219,' + (1 - k).toFixed(2) + ')'; cx.lineWidth = 2;
       cx.beginPath(); cx.arc(S.pos.x, S.pos.y, lv.r + 3 + k * 14, 0, Math.PI * 2); cx.stroke();
     }
     cx.fillStyle = '#2F3BDB'; cx.beginPath(); cx.arc(S.pos.x, S.pos.y, lv.r, 0, Math.PI * 2); cx.fill();
+    if (ov.hidden === hammer) ov.hidden = !hammer;
+    if (hammer) drawHammer(lv);
     $('#hud-tm').textContent = fmtTime(nowElapsed());
-  }
+  } else if (!ov.hidden) ov.hidden = true;
   requestAnimationFrame(draw);
+}
+// 持ち手とワイヤー。迷路の外にも出るので、画面いっぱいの層（#ov）に描く
+const ov = $('#ov'), ox = ov.getContext('2d');
+function drawHammer(lv) {
+  // 画面いっぱいの層なので、細かさは2倍までにして軽くする
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), vw = ov.clientWidth, vh = ov.clientHeight;
+  const pw = Math.round(vw * dpr), ph = Math.round(vh * dpr);
+  if (ov.width !== pw || ov.height !== ph) { ov.width = pw; ov.height = ph; }
+  ox.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ox.clearRect(0, 0, vw, vh);
+  const b = cv.getBoundingClientRect(), kx = b.width / W, ky = b.height / H;
+  const bx = b.left + S.pos.x * kx, by = b.top + S.pos.y * ky;
+  // つかんでいる間は指の位置。はなしている間は点の真下（迷路の外をなぞれない端末では、迷路の中におさめる）
+  const g = S.dragging && S.grip ? S.grip : restGrip(bx, by, locked() ? { r: vw, b: vh } : { r: b.right, b: b.bottom });
+  const dx = bx - g.x, dy = by - g.y, d = Math.hypot(dx, dy);
+  const ux = d > 0.5 ? dx / d : 0, uy = d > 0.5 ? dy / d : -1; // 持ち手から点への向き
+  const TIP = 17, rr = lv.r * kx;
+  ox.lineCap = 'round'; ox.lineJoin = 'round';
+  // ワイヤー：暗いかべの上でも明るい道の上でも見えるように、白いふち＋濃い芯
+  if (d > TIP + rr + 2) {
+    ox.beginPath(); ox.moveTo(g.x + ux * TIP, g.y + uy * TIP); ox.lineTo(bx - ux * rr, by - uy * rr);
+    ox.strokeStyle = 'rgba(255,255,255,.92)'; ox.lineWidth = 5; ox.stroke();
+    ox.strokeStyle = '#4B5080'; ox.lineWidth = 2; ox.stroke();
+  }
+  // 持ち手：三角の輪。とがった先を点に向ける
+  ox.save(); ox.translate(g.x, g.y); ox.rotate(Math.atan2(uy, ux) + Math.PI / 2);
+  ox.beginPath(); ox.moveTo(0, -TIP); ox.lineTo(16, 13); ox.lineTo(-16, 13); ox.closePath();
+  ox.fillStyle = 'rgba(255,255,255,.55)'; ox.fill();
+  ox.strokeStyle = 'rgba(255,255,255,.95)'; ox.lineWidth = 7; ox.stroke();
+  ox.strokeStyle = '#15162B'; ox.lineWidth = 3.5; ox.stroke();
+  ox.restore();
+  // 始める前：持ち手を目立たせて、「ここを持つ」と知らせる
+  if (S.state === 'ready') {
+    const k = (performance.now() % 1200) / 1200;
+    ox.strokeStyle = 'rgba(47,59,219,' + (1 - k).toFixed(2) + ')'; ox.lineWidth = 2.5;
+    ox.beginPath(); ox.arc(g.x, g.y, 25 + k * 14, 0, Math.PI * 2); ox.stroke();
+    const text = 'ここを持つ';
+    ox.font = '700 12.5px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif';
+    const lw = ox.measureText(text).width + 18, lh = 24;
+    const lx = g.x + 34 + lw > vw - 8 ? g.x - 34 - lw : g.x + 34, ly = g.y - lh / 2, q = lh / 2;
+    ox.beginPath(); ox.moveTo(lx + q, ly); ox.lineTo(lx + lw - q, ly); ox.arc(lx + lw - q, ly + q, q, -Math.PI / 2, Math.PI / 2);
+    ox.lineTo(lx + q, ly + lh); ox.arc(lx + q, ly + q, q, Math.PI / 2, Math.PI * 1.5); ox.closePath();
+    ox.fillStyle = '#2F3BDB'; ox.fill();
+    ox.fillStyle = '#FFFFFF'; ox.textAlign = 'left'; ox.textBaseline = 'middle'; ox.fillText(text, lx + 9, g.y + 0.5);
+  }
 }
 
 /* ===== ボタン ===== */
@@ -632,10 +754,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) ac.suspend(); else ac.resume();
 });
 window.addEventListener('resize', fit);
+window.addEventListener('resize', syncLock);
 fit(); requestAnimationFrame(draw);
 
 // 動作確認用
-window.__maze = { W, H, LEVELS, inside, inRect, inTrigger, NARROW_Y, S, scare, loadLevel, moveTo, newGame, pickFace, prepareFace, faceReady: () => (readyFace ? readyFace.file : null), TITLES, RARE, RARE_RATE, decideTitle, nearWall, bgmMode: () => (bgm ? bgm.mode : null), audioState: () => (ac ? ac.state : null) };
+window.__maze = { W, H, LEVELS, inside, inRect, inTrigger, NARROW_Y, S, scare, loadLevel, moveTo, newGame, gripDown, gripMove, gripUp, restGrip, MIN_WIRE, REST_WIRE, pickFace, prepareFace, faceReady: () => (readyFace ? readyFace.file : null), TITLES, RARE, RARE_RATE, decideTitle, nearWall, bgmMode: () => (bgm ? bgm.mode : null), audioState: () => (ac ? ac.state : null) };
 })();
 </script>
 </body>

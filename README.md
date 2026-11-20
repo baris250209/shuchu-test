@@ -33,6 +33,14 @@ node tests/test_maze.mjs index.html
 node tests/test_titles.mjs index.html
 ```
 
+```bash
+node tests/test_grip.mjs index.html
+```
+
+```bash
+node tests/test_touch.mjs index.html
+```
+
 顔の画像を足すときは、`_inbox` フォルダに画像を入れて、次を実行します（Python と Pillow が必要です）。
 
 ```bash
