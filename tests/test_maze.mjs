@@ -47,5 +47,26 @@ const r3 = reach(last);
 ok(r3.narrow && r3.trigger, '最終レベル：細い道と、ドッキリの地点に届く');
 ok(!M.inTrigger(last.start[0], last.start[1]) && last.start[1] > M.NARROW_Y, '最終レベル：スタート直後にはドッキリが出ない');
 // 1・2面にはドッキリ地点がない（動きの処理は最終レベルだけで判定しているが、念のため）
+
+// 最終レベルの保険：細い道に届く前に3回ミスしたら、ドッキリが出る（2回目までは、ふつうのミス）
+{
+  const S = M.S, LAST = M.LEVELS.length - 1;
+  const miss = () => { M.loadLevel(LAST); S.state = 'play'; M.moveTo(last.start[0], last.start[1] - 60); }; // 上に60＝かべの中
+  M.newGame();
+  miss();
+  ok(S.state === 'fail' && S.fails === 1 && S.missBy[LAST] === 1, '最終レベル：1回目のミスは、ふつうのミス（＋3秒でやり直し）');
+  miss();
+  ok(S.state === 'fail' && S.fails === 2 && S.missBy[LAST] === 2, '最終レベル：2回目のミスも、ふつうのミス');
+  miss();
+  ok(S.state === 'scare' && S.scareBy === 'safety' && S.missBy[LAST] === 3, '最終レベル：3回目のミスで、ドッキリが出る（保険）');
+  // 1・2面では、何回ミスしてもドッキリは出ない
+  M.newGame();
+  for (let i = 0; i < 6; i++) { M.loadLevel(0); S.state = 'play'; M.moveTo(M.LEVELS[0].start[0], M.LEVELS[0].start[1] - 60); }
+  ok(S.state === 'fail' && S.missBy[0] === 6 && S.fails === 0, 'レベル1：6回ミスしても、ドッキリは出ない');
+  // 細い道に届いたあとは、1回目のミスで出る（今までどおり）
+  M.newGame(); M.loadLevel(LAST); S.state = 'play'; S.reachedNarrow = true;
+  M.moveTo(last.start[0], last.start[1] - 60);
+  ok(S.state === 'scare' && S.scareBy === 'narrow', '最終レベル：細い道に届いたあとは、1回目のミスで出る');
+}
 console.log(fail ? `\n${fail} 件 失敗` : '\nすべて成功');
 process.exit(fail ? 1 : 0);

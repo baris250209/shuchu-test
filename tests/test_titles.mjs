@@ -22,7 +22,7 @@ const cases = [
   ['legend', d({ rec: 9000, l1: 3000, l2: 6000 })],
   ['perfect', d({ missBy: [0, 0, 0], scareBy: 'point' })],
   ['wall', d({ recMiss: 10, missBy: [6, 4, 0], rec: 70000, l1: 30000, l2: 40000 })],
-  ['stuck', d({ missBy: [0, 0, 5], scareBy: 'safety' })],
+  ['stuck', d({ missBy: [0, 0, 3], scareBy: 'safety' })],
   ['best', d({ newBest: true })],
   ['regular', d({ plays: 5 })],
   ['morning', d({ recMiss: 3, missBy: [3, 0, 1], rec: 40000, l1: 19000, l2: 21000 })],
