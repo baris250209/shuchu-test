@@ -65,11 +65,15 @@ html.game,html.game body{touch-action:none}
 .big{font-size:22px;font-weight:800;line-height:1.5}
 .time{font-size:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .scare{position:fixed;inset:0;z-index:100;background:#000000;overflow:hidden}
-/* ゆれは最初の2回（約0.2秒）だけ。明暗の入れかわりを長く続けないため。あとはゆっくり拡大するだけ */
-.scare img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;scale:1.12;animation:shake .09s linear 2, zoom 2.6s ease-out forwards}
-@keyframes shake{0%{translate:-1.2% .8%}25%{translate:1% -1%}50%{translate:-.8% -1.2%}75%{translate:1.2% 1%}100%{translate:-1.2% .8%}}
+/* 顔が出ている間（約2.6秒）、ずっと速くゆれる。明暗の入れかわりをおさえるため、顔は暗め（55%）に出す。
+   「速いゆれ」と「暗め」は組みで確かめてあるので、片方だけ変えない（変えるときは、明滅の面積を計算し直す）。
+   横のゆれ幅は vmin（画面の短い辺の%）。横長の画面で、ゆれが大きくなりすぎないようにするため */
+.scare img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;scale:1.12;opacity:.55;animation:shake .09s linear infinite, zoom 2.6s ease-out forwards}
+/* 画像が読めないときの予備の顔（描いた絵）は、白と黒のすじが多いので、ゆらさない */
+.scare img.drawn{opacity:1;animation:zoom 2.6s ease-out forwards}
+@keyframes shake{0%{translate:-1.2vmin .8%}25%{translate:1vmin -1%}50%{translate:-.8vmin -1.2%}75%{translate:1.2vmin 1%}100%{translate:-1.2vmin .8%}}
 @keyframes zoom{from{scale:1.12}to{scale:1.36}}
-@media (prefers-reduced-motion: reduce){.scare img{animation:none}}
+@media (prefers-reduced-motion: reduce){.scare img,.scare img.drawn{animation:none;opacity:1}}
 </style>
 </head>
 <body>
@@ -91,7 +95,7 @@ html.game,html.game body{touch-action:none}
         <p>マナーモードを解除して、ボタンの音が大きすぎない音量にしてください。</p>
         <button type="button" class="mini" id="b-sound">いちばん大きい音を確かめる</button>
       </div>
-      <p class="caution strong"><strong>ご注意</strong>　急に大きな音が出ることがあります。心臓の弱い方、妊娠中の方、体調のすぐれない方、小さなお子さまはご遠慮ください。イヤホンの方は音量をひかえめに。歩きながら・運転中は遊ばないでください。</p>
+      <p class="caution strong"><strong>ご注意</strong>　急に大きな音が出て、画面が速くゆれることがあります。心臓の弱い方、光の刺激で具合が悪くなったことのある方、妊娠中の方、体調のすぐれない方、小さなお子さまはご遠慮ください。明るい場所で、画面から顔をはなして遊んでください。イヤホンの方は音量をひかえめに。歩きながら・運転中は遊ばないでください。</p>
     </div>
     <button type="button" class="btn primary" id="b-start" style="margin-top:16px;width:100%">スタート</button>
     <p class="credit" style="margin-top:14px">作った人：<a href="https://x.com/baris250209" target="_blank" rel="noopener">バルス大佐（@baris250209）</a></p>
@@ -509,7 +513,9 @@ function scare(by) {
   S.scareBy = by || 'point';
   S.state = 'scare'; stopTimer(); setHint();
   clearTimeout(msgTimer); $('#msg').hidden = true;
-  face.src = pickFace();
+  const src = pickFace();
+  face.classList.toggle('drawn', src === drawn); // 予備の顔は、ゆらさない
+  face.src = src;
   $('#scare').hidden = false;
   stopBgm();
   scream();
