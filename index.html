@@ -24,6 +24,8 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .wrap{max-width:440px;min-height:100%;margin:0 auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
+/* Xなどアプリの中のブラウザは、画面の下にボタンを重ねる。最初と終わりの画面は、いちばん下まで読めるように余白をとる（ゲーム中の画面には足さない） */
+#s-title,#s-end{padding-bottom:96px}
 h1{font-size:26px;line-height:1.3;margin:24px 0 0;font-weight:800;letter-spacing:.02em}
 p{margin:0}
 .lead{color:var(--ink-2)}
