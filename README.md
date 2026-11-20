@@ -46,3 +46,9 @@ node tests/test_touch.mjs index.html
 ```bash
 python tools/add_faces.py
 ```
+
+リンクを貼ったときに出る画像（`ogp.png`）は、次で作ります（Windows で、Python と Pillow、文字の Noto Sans JP が必要です）。ファイル名のあとの文字が、作った人の表示になります（付けなければ、表示なしの画像になります）。
+
+```bash
+python tools/make_ogp.py ogp.png "作った人：バルス大佐（@baris250209）"
+```
